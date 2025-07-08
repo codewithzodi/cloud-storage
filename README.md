@@ -27,8 +27,8 @@ ZOD CLOUD is a modern, easy-to-use cloud file storage web app built with Flask. 
 
 1. **Clone the repository:**
    ```bash
-   git clone <your-repo-url>
-   cd <your-repo-folder>
+   git clone https://github.com/codewithzodi/cloud-storage.git
+   cd cloud-storage
    ```
 
 2. **Install dependencies:**
