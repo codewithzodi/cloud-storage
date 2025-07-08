@@ -19,7 +19,7 @@ ZOD CLOUD is a modern, easy-to-use cloud file storage web app built with Flask. 
 
 ## 🖥️ Screenshots
 
-> _Add your screenshots here!_
+> ![Screenshot](screenshot.png)
 
 ---
 
