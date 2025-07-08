@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Upload and Download</title>
+    <style>
+        /* General Styles */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Banner Styles */
+        .banner {
+            background: linear-gradient(to right, #2a5298, #1e3c72);
+            color: white;
+            text-align: center;
+            padding: 50px 0;
+            font-size: 3rem;
+            font-weight: bold;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            position: relative;
+        }
+
+        .banner::after {
+            content: '';
+            position: absolute;
+            width: 60px;
+            height: 3px;
+            background-color: #fff;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-top: 20px;
+        }
+
+        .container {
+            width: 80%;
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        input[type="file"],
+        input[type="text"],
+        button {
+            padding: 10px;
+            font-size: 16px;
+            border: 2px solid #ccc;
+            border-radius: 8px;
+            transition: border-color 0.3s ease;
+        }
+
+        input[type="file"]:focus,
+        input[type="text"]:focus,
+        button:hover {
+            border-color: #007BFF;
+            outline: none;
+        }
+
+        button {
+            cursor: pointer;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+        }
+
+        button:disabled {
+            background-color: #ddd;
+            cursor: not-allowed;
+        }
+
+        .file-list {
+            margin-top: 20px;
+        }
+
+        .file-item {
+            padding: 10px;
+            border: 1px solid #ddd;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            background-color: #fafafa;
+        }
+
+        .file-item:hover {
+            background-color: #f1f1f1;
+        }
+
+        .error-message,
+        .success-message {
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .error-message {
+            background-color: #f44336;
+        }
+
+        .success-message {
+            background-color: #4CAF50;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Banner Section -->
+    <div class="banner">
+        ZOD CLOUD
+    </div>
+
+    <div class="container">
+        <h1>File Upload and Download</h1>
+
+        <!-- Success/Error Message Section -->
+        <div id="message-container"></div>
+
+        <!-- File Upload Section -->
+        <h2>Upload a File</h2>
+        <form id="upload-form" action="/upload" method="post" enctype="multipart/form-data">
+            <input type="file" name="file" required>
+            <button type="submit">Upload</button>
+        </form>
+
+        <!-- File Download Section -->
+        <h2>Download a File</h2>
+        <form action="/download_file" method="get">
+            <input type="text" name="filename" placeholder="Enter filename" required>
+            <button type="submit">Download</button>
+        </form>
+
+        <!-- File List Section -->
+        <h2>List of Files</h2>
+        <button onclick="fetchFiles()">Show Files</button>
+        <button onclick="downloadAll()">Download All as ZIP</button>
+        <ul id="file-list" class="file-list"></ul>
+    </div>
+
+    <script>
+        async function fetchFiles() {
+            try {
+                const response = await fetch('/list');
+                const data = await response.json();
+                const fileList = document.getElementById('file-list');
+                fileList.innerHTML = '';
+
+                if (data.files && data.files.length > 0) {
+                    data.files.forEach(file => {
+                        const listItem = document.createElement('li');
+                        listItem.classList.add('file-item');
+                        listItem.textContent = file;
+
+                        // Download button
+                        const downloadBtn = document.createElement('button');
+                        downloadBtn.textContent = 'Download';
+                        downloadBtn.onclick = () => downloadFile(file);
+                        listItem.appendChild(downloadBtn);
+
+                        // Delete button
+                        const deleteBtn = document.createElement('button');
+                        deleteBtn.textContent = 'Delete';
+                        deleteBtn.onclick = () => deleteFile(file);
+                        listItem.appendChild(deleteBtn);
+
+                        // Rename button
+                        const renameBtn = document.createElement('button');
+                        renameBtn.textContent = 'Rename';
+                        renameBtn.onclick = () => renameFilePrompt(file);
+                        listItem.appendChild(renameBtn);
+
+                        fileList.appendChild(listItem);
+                    });
+                } else {
+                    showMessage('No files found in the directory.', 'error');
+                }
+            } catch (error) {
+                showMessage('Error fetching file list. Please try again later.', 'error');
+            }
+        }
+
+        async function downloadFile(filename) {
+            window.location.href = `/download_file?filename=${encodeURIComponent(filename)}`;
+        }
+
+        async function deleteFile(filename) {
+            if (!confirm(`Are you sure you want to delete ${filename}?`)) return;
+            try {
+                const response = await fetch(`/delete/${encodeURIComponent(filename)}`, { method: 'DELETE' });
+                const result = await response.json();
+                if (response.ok) {
+                    showMessage(result.message, 'success');
+                    fetchFiles();
+                } else {
+                    showMessage(result.error || 'Delete failed', 'error');
+                }
+            } catch (error) {
+                showMessage('Error deleting file.', 'error');
+            }
+        }
+
+        async function renameFilePrompt(oldName) {
+            const newName = prompt('Enter new name for the file:', oldName);
+            if (!newName || newName === oldName) return;
+            try {
+                const response = await fetch('/rename', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ old_name: oldName, new_name: newName })
+                });
+                const result = await response.json();
+                if (response.ok) {
+                    showMessage(result.message, 'success');
+                    fetchFiles();
+                } else {
+                    showMessage(result.error || 'Rename failed', 'error');
+                }
+            } catch (error) {
+                showMessage('Error renaming file.', 'error');
+            }
+        }
+
+        async function downloadAll() {
+            window.location.href = '/download_all';
+        }
+
+        // Handle form submission for file upload
+        const uploadForm = document.getElementById('upload-form');
+        uploadForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const formData = new FormData(uploadForm);
+            const response = await fetch(uploadForm.action, {
+                method: uploadForm.method,
+                body: formData
+            });
+            const result = await response.json();
+            if (response.ok) {
+                showMessage(`File uploaded successfully: ${result.filename}`, 'success');
+                fetchFiles();
+            } else {
+                showMessage(result.error || 'File upload failed', 'error');
+            }
+        });
+
+        // Show success or error messages
+        function showMessage(message, type) {
+            const messageContainer = document.getElementById('message-container');
+            messageContainer.innerHTML = `<div class="${type}-message">${message}</div>`;
+        }
+
+        // Initial fetch
+        fetchFiles();
+    </script>
+</body>
+
+</html>
